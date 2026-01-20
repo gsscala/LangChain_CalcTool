@@ -29,3 +29,20 @@ prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}"),
 ])
+
+
+# O agente decide se usa a ferramenta ou responde diretamente 
+agent = create_tool_calling_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+def executar_assistente(pergunta):
+    print(f"\n--- Pergunta: {pergunta} ---")
+    resposta = agent_executor.invoke({"input": pergunta})
+    print(f"Resposta Final: {resposta['output']}")
+
+if __name__ == "__main__":
+    # Teste 1: Conhecimento Geral (Deve responder sozinho)
+    executar_assistente("Quem foi Albert Einstein?")
+    
+    # Teste 2: Matemática (Deve acionar a calculadora)
+    executar_assistente("Quanto é 128 vezes quarenta e seis?")
