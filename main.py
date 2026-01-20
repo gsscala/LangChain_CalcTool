@@ -1,7 +1,6 @@
 from langchain_ollama import ChatOllama
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
+from langchain.agents import create_agent
 
 @tool
 def calculadora(expressao: str) -> str:
@@ -17,28 +16,21 @@ def calculadora(expressao: str) -> str:
         return f"Erro no cálculo: {e}"
 
 
-llm = ChatOllama(model="llama3", temperature=0)
+llm = ChatOllama(model="llama3.1", temperature=0)
 
 tools = [calculadora]
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "Você é um assistente prestativo que pode responder perguntas gerais ou usar uma calculadora para matemática."
-        " Para usar a calculadora, você deve garantir que sua expressão seja resolvível pela sintaxe do Python. Ou seja, "
-        "1 + 1, 2 * 3, 4 / 9, 2 ** (1/2), 0.5 / 9"),
-    ("placeholder", "{chat_history}"),
-    ("human", "{input}"),
-    ("placeholder", "{agent_scratchpad}"),
-])
-
+system_prompt = ("Você é um assistente prestativo que pode responder perguntas gerais ou usar uma calculadora para matemática."
+    " Para usar a calculadora, você deve garantir que sua expressão seja resolvível pela sintaxe do Python. Ou seja, "
+    "1 + 1, 2 * 3, 4 / 9, 2 ** (1/2), 0.5 / 9")
 
 # O agente decide se usa a ferramenta ou responde diretamente 
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+agent_executor = create_agent(llm, tools, system_prompt=system_prompt)
 
 def executar_assistente(pergunta):
     print(f"\n--- Pergunta: {pergunta} ---")
-    resposta = agent_executor.invoke({"input": pergunta})
-    print(f"Resposta Final: {resposta['output']}")
+    resposta = agent_executor.invoke({"messages": [("user", pergunta)]})
+    print(f"Resposta Final: {resposta['messages'][-1].content}")
 
 if __name__ == "__main__":
     # Teste 1: Conhecimento Geral (Deve responder sozinho)
@@ -46,3 +38,8 @@ if __name__ == "__main__":
     
     # Teste 2: Matemática (Deve acionar a calculadora)
     executar_assistente("Quanto é 128 vezes quarenta e seis?")
+    
+    executar_assistente("Qual é a raiz quadrada de 144?")
+    executar_assistente("Qual é a raiz quadrada do sexto inteiro positivo?")
+    
+    executar_assistente("Calcule dois elevado a 10")
